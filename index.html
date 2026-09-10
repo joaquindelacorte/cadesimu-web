@@ -22,6 +22,12 @@
     <button class="btn btn-step"  id="btn-step">  ⏭ Step  </button>
 
     <div class="toolbar-sep"></div>
+
+    <button class="btn" id="btn-new-rung">+ Rung</button>
+    <button class="btn" id="btn-export">↓ Exportar</button>
+    <button class="btn" id="btn-import">↑ Importar</button>
+
+    <div class="toolbar-sep"></div>
     <span id="scan-counter" style="color:var(--text-muted);font-size:11px;">Scan #0</span>
 
     <span id="status-badge">DETENIDO</span>
@@ -30,35 +36,32 @@
   <!-- ═══ APP ══════════════════════════════════════════════════════════ -->
   <div id="app">
 
-    <!-- Canvas area -->
-    <div id="canvas-area">
-      <canvas id="ladder-canvas"></canvas>
-
-      <!-- Placeholder mientras no hay editor visual -->
-      <div class="canvas-placeholder">
-        <div class="icon">🔧</div>
-        <p>Editor visual — Fase 1</p>
-        <p>Motor de scan activo · Monitoreá las variables en el panel →</p>
-        <p style="margin-top:16px;font-size:11px;opacity:0.4;">
-          Programa demo: arranque con retención (I.0=pulsador arranque, I.1=paro NC)<br>
-          Hacé click en I.0 o I.1 en el panel para simular entradas.
-        </p>
+    <!-- Paleta de componentes -->
+    <aside id="palette-panel">
+      <div class="panel-title">Componentes</div>
+      <div id="palette"></div>
+      <div class="palette-hint">
+        Seleccioná un componente y presioná <strong>+</strong> en el rung para insertarlo.
       </div>
-    </div>
+    </aside>
 
-    <!-- Sidebar: monitor de variables -->
+    <!-- Área del diagrama Ladder -->
+    <div id="ladder-area"></div>
+
+    <!-- Monitor de variables -->
     <aside id="sidebar">
-      <h2>Monitor de Variables</h2>
+      <div class="panel-title">Variables</div>
       <div id="var-table-wrap">
         <table id="var-table">
           <thead>
             <tr>
-              <th>Dirección</th>
-              <th>Valor</th>
+              <th>Direc.</th>
+              <th>Val</th>
+              <th>I/O</th>
             </tr>
           </thead>
           <tbody id="var-tbody">
-            <!-- Renderizado por app.js -->
+            <tr><td colspan="3" class="var-empty">Sin variables</td></tr>
           </tbody>
         </table>
       </div>
@@ -70,8 +73,8 @@
   <div id="statusbar">
     <span><span class="sb-key">Scan:</span> <span id="sb-scan">0</span></span>
     <span><span class="sb-key">Tiempo:</span> <span id="sb-time">0.00 ms</span></span>
-    <span><span class="sb-key">Fase:</span> 0 — Motor + Scaffold</span>
-    <span><span class="sb-key">v0.1.0</span></span>
+    <span><span class="sb-key">Fase:</span> 1 — Editor Visual</span>
+    <span><span class="sb-key">v0.2.0</span></span>
   </div>
 
   <script type="module" src="js/app.js"></script>

@@ -1,107 +1,149 @@
 /**
- * app.js — Entry point de CADESIMU Web
+ * app.js — Entry point CADESIMU Web (Fase 1: editor visual)
  *
- * Conecta el motor de scan con la UI.
- * Fase 0: demo con un programa hardcodeado para validar el motor.
+ * Orquesta: ProgramState ← → LadderRenderer + Palette + Modal + ScanEngine
  */
 
-import { VariableTable } from './engine/variables.js';
-import { ScanEngine }    from './engine/scan.js';
+import { VariableTable }  from './engine/variables.js';
+import { ScanEngine }     from './engine/scan.js';
+import { ProgramState }   from './editor/state.js';
+import { LadderRenderer } from './editor/renderer.js';
+import { Palette }        from './editor/palette.js';
+import { VariableModal }  from './editor/modal.js';
+import { exportProject, downloadProject, importProjectFromFile, parseProject } from './io/json.js';
 
-// ─── Variables del PLC ───────────────────────────────────────────────
-const vars = new VariableTable();
+/* ═══════════════════════════════════════════════════════════════════════
+   Estado global
+═══════════════════════════════════════════════════════════════════════ */
+const vars    = new VariableTable();
+const prog    = new ProgramState();
+const engine  = new ScanEngine(vars);
+const modal   = new VariableModal();
 
-// Definir variables de demo
-vars.defineInput('0', false);   // I.0 — Pulsador arranque
-vars.defineInput('1', false);   // I.1 — Pulsador paro (NC → normalmente true)
-vars.defineOutput('0', false);  // Q.0 — Motor
-vars.defineMark('0', false);    // M.0 — Memoria auxiliar
-vars.set('I', '1', true);       // I.1 arranca en TRUE (pulsador NC)
+/* ═══════════════════════════════════════════════════════════════════════
+   DOM refs
+═══════════════════════════════════════════════════════════════════════ */
+const ladderArea   = document.getElementById('ladder-area');
+const paletteEl    = document.getElementById('palette');
+const varTbody     = document.getElementById('var-tbody');
+const badge        = document.getElementById('status-badge');
+const scanCountEl  = document.getElementById('scan-counter');
+const sbScan       = document.getElementById('sb-scan');
+const sbTime       = document.getElementById('sb-time');
 
-// ─── Programa demo: arranque con retención (latch) ───────────────────
-//
-//   Rung 0: [I.0]--[/I.1]--[M.0 XIC en paralelo con I.0]--( Q.0 )
-//   Rung 1: Q.0 → M.0
-//
-const program = [
-  {
-    id: 'rung-0',
-    comment: 'Arranque con retención',
-    elements: [
-      {
-        type: 'BRANCH',
-        branches: [
-          [ { type: 'XIC', addrType: 'I', address: '0' } ],  // pulsador arranque
-          [ { type: 'XIC', addrType: 'M', address: '0' } ],  // retención
-        ]
-      },
-      { type: 'XIO', addrType: 'I', address: '1' },   // pulsador paro (NC)
-      { type: 'OTE', addrType: 'Q', address: '0' },   // salida motor
-    ]
+const btnPlay      = document.getElementById('btn-play');
+const btnPause     = document.getElementById('btn-pause');
+const btnStop      = document.getElementById('btn-stop');
+const btnStep      = document.getElementById('btn-step');
+const btnNewRung   = document.getElementById('btn-new-rung');
+const btnExport    = document.getElementById('btn-export');
+const btnImport    = document.getElementById('btn-import');
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Paleta
+═══════════════════════════════════════════════════════════════════════ */
+const palette = new Palette(paletteEl);
+palette.render();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Renderer
+═══════════════════════════════════════════════════════════════════════ */
+const renderer = new LadderRenderer(ladderArea, {
+  onAddElement(rungId) {
+    const type = palette.getSelected();
+    if (!type) { toast('Primero seleccioná un componente de la paleta.', 'warn'); return; }
+    prog.addElement(rungId, type);
   },
-  {
-    id: 'rung-1',
-    comment: 'Retención memoria',
-    elements: [
-      { type: 'XIC', addrType: 'Q', address: '0' },
-      { type: 'OTE', addrType: 'M', address: '0' },
-    ]
-  }
-];
+  async onElementClick(rungId, idx) {
+    const rung = prog.rungs.find(r => r.id === rungId);
+    if (!rung) return;
+    const el = rung.elements[idx];
+    if (!el) return;
+    const result = await modal.open({ addrType: el.addrType, address: el.address });
+    if (!result) return;
+    prog.updateElement(rungId, idx, result);
+    // Asegurar que la variable esté definida en la tabla
+    ensureVar(result.addrType, result.address);
+    fullRender();
+  },
+  onRemoveRung(rungId) { prog.removeRung(rungId); },
+  onAddRungAfter(afterIndex) { prog.addRung(afterIndex); },
+});
 
-// ─── Motor ───────────────────────────────────────────────────────────
-const engine = new ScanEngine(vars);
-engine.loadProgram(program);
-
-// ─── UI: elementos del DOM ───────────────────────────────────────────
-const btnPlay   = document.getElementById('btn-play');
-const btnPause  = document.getElementById('btn-pause');
-const btnStop   = document.getElementById('btn-stop');
-const btnStep   = document.getElementById('btn-step');
-const badge     = document.getElementById('status-badge');
-const scanCount = document.getElementById('scan-counter');
-const varTbody  = document.getElementById('var-tbody');
-const sbScan    = document.getElementById('sb-scan');
-const sbTime    = document.getElementById('sb-time');
-
-// ─── Renderizado de variables ─────────────────────────────────────────
-function renderVars() {
-  const rows = vars.snapshot();
-  varTbody.innerHTML = '';
-
-  for (const { type, address, value } of rows) {
-    const tr = document.createElement('tr');
-
-    let displayVal;
-    let valClass;
-    if (type === 'T' || type === 'C') {
-      displayVal = `${value.accumulated}/${value.preset}`;
-      valClass = value.done ? 'var-val-true' : 'var-val-false';
-    } else {
-      displayVal = value ? '1' : '0';
-      valClass = value ? 'var-val-true' : 'var-val-false';
-    }
-
-    tr.innerHTML = `
-      <td class="var-addr">${type}.${address}</td>
-      <td class="${valClass}">${displayVal}</td>
-    `;
-
-    // Click en entrada → toggle (para demo interactivo)
-    if (type === 'I') {
-      tr.style.cursor = 'pointer';
-      tr.title = 'Click para togglear';
-      tr.addEventListener('click', () => {
-        vars.set('I', address, !vars.getBool('I', address));
-        renderVars();
-      });
-    }
-
-    varTbody.appendChild(tr);
+/* ═══════════════════════════════════════════════════════════════════════
+   Variables — asegurar existencia antes de leer
+═══════════════════════════════════════════════════════════════════════ */
+function ensureVar(type, address) {
+  if (vars.get(type, address) === undefined) {
+    if      (type === 'I') vars.defineInput(address, false);
+    else if (type === 'Q') vars.defineOutput(address, false);
+    else if (type === 'M') vars.defineMark(address, false);
   }
 }
 
-// ─── Actualizar estado del badge ──────────────────────────────────────
+function ensureAllVars() {
+  for (const rung of prog.rungs) {
+    for (const el of rung.elements) {
+      ensureVar(el.addrType, el.address);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Render completo (reconstruye el DOM del ladder y la tabla de variables)
+═══════════════════════════════════════════════════════════════════════ */
+function fullRender() {
+  ensureAllVars();
+  renderer.render(prog.rungs, vars);
+  renderVarTable();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Tabla de variables (sidebar)
+═══════════════════════════════════════════════════════════════════════ */
+function renderVarTable() {
+  const rows = vars.snapshot()
+    .filter(r => r.type === 'I' || r.type === 'Q' || r.type === 'M');
+
+  if (rows.length === 0) {
+    varTbody.innerHTML = `<tr><td colspan="3" class="var-empty">Sin variables</td></tr>`;
+    return;
+  }
+
+  varTbody.innerHTML = rows.map(({ type, address, value }) => {
+    const boolVal = Boolean(value);
+    const valClass = boolVal ? 'var-val-true' : 'var-val-false';
+    const canToggle = type === 'I';
+    const toggleBtn = canToggle
+      ? `<button class="var-toggle" data-type="${type}" data-addr="${address}"
+                 title="Toggle">
+           ${boolVal ? '⬛' : '⬜'}
+         </button>`
+      : '';
+    return `
+      <tr>
+        <td class="var-addr">${type}.${address}</td>
+        <td class="${valClass}">${boolVal ? '1' : '0'}</td>
+        <td>${toggleBtn}</td>
+      </tr>`;
+  }).join('');
+
+  // Toggle de entradas
+  varTbody.querySelectorAll('.var-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const { type, addr } = btn.dataset;
+      vars.set(type, addr, !vars.getBool(type, addr));
+      if (!engine.running) {
+        renderVarTable();
+        renderer.updateStates(prog.rungs, vars);
+      }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Badge / status bar
+═══════════════════════════════════════════════════════════════════════ */
 function setBadge(state) {
   badge.textContent = state;
   badge.className = '';
@@ -109,22 +151,29 @@ function setBadge(state) {
   if (state === 'PAUSED')  badge.classList.add('paused');
 }
 
-// ─── Eventos del motor ────────────────────────────────────────────────
-engine.on('scan', ({ scanCount: sc, scanTimeMs: t }) => {
-  renderVars();
-  scanCount.textContent = `Scan #${sc}`;
-  sbScan.textContent = sc;
-  sbTime.textContent = `${t.toFixed(2)} ms`;
+/* ═══════════════════════════════════════════════════════════════════════
+   Motor de scan → actualización ligera (sin reconstruir DOM)
+═══════════════════════════════════════════════════════════════════════ */
+engine.on('scan', ({ scanCount, scanTimeMs }) => {
+  renderer.updateStates(prog.rungs, vars);
+  renderVarTable();
+  scanCountEl.textContent = `Scan #${scanCount}`;
+  sbScan.textContent = scanCount;
+  sbTime.textContent = `${scanTimeMs.toFixed(2)} ms`;
 });
 
 engine.on('stop', () => {
-  renderVars();
+  fullRender();
   setBadge('DETENIDO');
-  scanCount.textContent = 'Scan #0';
+  scanCountEl.textContent = 'Scan #0';
 });
 
-// ─── Botones ──────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════════
+   Toolbar: Play / Pause / Stop / Step
+═══════════════════════════════════════════════════════════════════════ */
 btnPlay.addEventListener('click', () => {
+  ensureAllVars();
+  engine.loadProgram(prog.toRungs());
   engine.start();
   setBadge('RUNNING');
 });
@@ -140,12 +189,73 @@ btnStop.addEventListener('click', () => {
 });
 
 btnStep.addEventListener('click', () => {
+  if (!engine.running) {
+    ensureAllVars();
+    engine.loadProgram(prog.toRungs());
+  }
   engine.step();
   setBadge('PAUSED');
-  renderVars();
+  renderer.updateStates(prog.rungs, vars);
+  renderVarTable();
 });
 
-// ─── Init ─────────────────────────────────────────────────────────────
-renderVars();
+/* ═══════════════════════════════════════════════════════════════════════
+   Toolbar: Nuevo rung
+═══════════════════════════════════════════════════════════════════════ */
+btnNewRung?.addEventListener('click', () => {
+  prog.addRung(prog.rungs.length - 1);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Export / Import
+═══════════════════════════════════════════════════════════════════════ */
+btnExport?.addEventListener('click', () => {
+  ensureAllVars();
+  const project = exportProject({
+    vars,
+    rungs: prog.toRungs(),
+    meta:  { title: 'Mi programa CADESIMU', author: '' },
+  });
+  downloadProject(project);
+  toast('Proyecto exportado ✓');
+});
+
+btnImport?.addEventListener('click', async () => {
+  const { ok, project, error } = await importProjectFromFile();
+  if (!ok) { toast(error ?? 'Error al importar', 'error'); return; }
+
+  prog.fromJSON(project.rungs);
+  vars.fromJSON(project.variables);
+  engine.stop();
+  fullRender();
+  toast('Proyecto importado ✓');
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Toast
+═══════════════════════════════════════════════════════════════════════ */
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ProgramState → recarga el motor en caliente cuando cambia el programa
+   (sólo si ya estaba corriendo)
+═══════════════════════════════════════════════════════════════════════ */
+prog.onChange(() => {
+  fullRender();
+  if (engine.running) {
+    engine.loadProgram(prog.toRungs());
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Arranque
+═══════════════════════════════════════════════════════════════════════ */
+fullRender();
 setBadge('DETENIDO');
-console.log('[CADESIMU] Motor listo. Usá Play para arrancar.');
+console.log('[CADESIMU] Fase 1 lista. Seleccioná un componente → + Rung → +  para armar el circuito.');
