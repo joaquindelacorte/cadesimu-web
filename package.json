@@ -1,0 +1,12 @@
+{
+  "name": "cadesimu-web",
+  "version": "0.1.0",
+  "description": "Simulador de lógica Ladder en el navegador",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/engine.test.js"
+  },
+  "keywords": ["ladder", "plc", "simulator", "automation"],
+  "author": "Joaquin De La Corte",
+  "license": "MIT"
+}
