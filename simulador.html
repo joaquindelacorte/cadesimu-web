@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CADESIMU Web — Simulador Ladder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <!-- ═══ TOOLBAR ══════════════════════════════════════════════════════ -->
+  <div id="toolbar">
+    <span class="logo">⚡ CADESIMU</span>
+    <div class="toolbar-sep"></div>
+
+    <button class="btn btn-play"  id="btn-play">  ▶ Play  </button>
+    <button class="btn btn-pause" id="btn-pause"> ⏸ Pause </button>
+    <button class="btn btn-stop"  id="btn-stop">  ⏹ Stop  </button>
+    <button class="btn btn-step"  id="btn-step">  ⏭ Step  </button>
+
+    <div class="toolbar-sep"></div>
+
+    <button class="btn" id="btn-new-rung">+ Rung</button>
+    <button class="btn" id="btn-export">↓ Exportar</button>
+    <button class="btn" id="btn-import">↑ Importar</button>
+
+    <div class="toolbar-sep"></div>
+    <span id="scan-counter" style="color:var(--text-muted);font-size:11px;">Scan #0</span>
+
+    <span id="status-badge">DETENIDO</span>
+  </div>
+
+  <!-- ═══ APP ══════════════════════════════════════════════════════════ -->
+  <div id="app">
+
+    <!-- Paleta de componentes -->
+    <aside id="palette-panel">
+      <div class="panel-title">Componentes</div>
+      <div id="palette"></div>
+      <div class="palette-hint">
+        Seleccioná un componente y presioná <strong>+</strong> en el rung para insertarlo.
+      </div>
+    </aside>
+
+    <!-- Área del diagrama Ladder -->
+    <div id="ladder-area"></div>
+
+    <!-- Monitor de variables -->
+    <aside id="sidebar">
+      <div class="panel-title">Variables</div>
+      <div id="var-table-wrap">
+        <table id="var-table">
+          <thead>
+            <tr>
+              <th>Direc.</th>
+              <th>Val</th>
+              <th>I/O</th>
+            </tr>
+          </thead>
+          <tbody id="var-tbody">
+            <tr><td colspan="3" class="var-empty">Sin variables</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ═══ STATUS BAR ═══════════════════════════════════════════════════ -->
+  <div id="statusbar">
+    <span><span class="sb-key">Scan:</span> <span id="sb-scan">0</span></span>
+    <span><span class="sb-key">Tiempo:</span> <span id="sb-time">0.00 ms</span></span>
+    <span><span class="sb-key">Fase:</span> 1 — Editor Visual</span>
+    <span><span class="sb-key">v0.2.0</span></span>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
