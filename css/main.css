@@ -1,10 +1,11 @@
-/* ─── CADESIMU WEB — main.css (Fase 1) ───────────────────────────────── */
+/* ─── CADESIMU WEB — main.css (Fase 1 · estilo CADe_SIMU) ─────────────── */
 
 :root {
-  --bg:          #0d1117;
-  --surface:     #161b22;
-  --surface2:    #21262d;
-  --border:      #30363d;
+  /* Shell (toolbar, sidebars) — oscuro */
+  --bg:          #1a1d21;
+  --surface:     #22262c;
+  --surface2:    #2a2f37;
+  --border:      #3a3f4a;
   --accent:      #1f6feb;
   --accent-hl:   #388bfd;
   --green:       #3fb950;
@@ -12,8 +13,18 @@
   --orange:      #d29922;
   --text:        #e6edf3;
   --text-muted:  #8b949e;
-  --font:        'JetBrains Mono', 'Consolas', monospace;
-  --radius:      6px;
+
+  /* Diagrama — claro */
+  --ld-bg:       #ffffff;
+  --ld-dot:      #d0d4da;
+  --ld-rail:     #0047ab;   /* bus de potencia azul */
+  --ld-wire:     #1a1a1a;
+  --ld-wire-on:  #cc1111;
+  --ld-label:    #333;
+  --ld-label-on: #cc1111;
+
+  --font:    'JetBrains Mono', 'Consolas', monospace;
+  --radius:  6px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,10 +44,10 @@ body {
 #toolbar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 8px 16px;
+  padding: 7px 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
   user-select: none;
   flex-wrap: wrap;
@@ -46,7 +57,7 @@ body {
   font-size: 15px;
   font-weight: 700;
   color: var(--accent-hl);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   margin-right: 4px;
 }
 
@@ -58,25 +69,25 @@ body {
   color: var(--text);
   font-family: var(--font);
   font-size: 12px;
-  padding: 5px 12px;
+  padding: 5px 11px;
   border-radius: var(--radius);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background .12s, border-color .12s;
   white-space: nowrap;
 }
 .btn:hover  { background: #30363d; border-color: #6e7681; }
 .btn:active { background: var(--surface); }
 
-.btn.btn-play  { border-color: var(--green);      color: var(--green); }
+.btn.btn-play  { border-color: var(--green);     color: var(--green); }
 .btn.btn-play:hover  { background: rgba(63,185,80,.12); }
-.btn.btn-pause { border-color: var(--orange);     color: var(--orange); }
+.btn.btn-pause { border-color: var(--orange);    color: var(--orange); }
 .btn.btn-pause:hover { background: rgba(210,153,34,.12); }
-.btn.btn-stop  { border-color: var(--red);        color: var(--red); }
+.btn.btn-stop  { border-color: var(--red);       color: var(--red); }
 .btn.btn-stop:hover  { background: rgba(248,81,73,.12); }
-.btn.btn-step  { border-color: var(--accent-hl);  color: var(--accent-hl); }
+.btn.btn-step  { border-color: var(--accent-hl); color: var(--accent-hl); }
 .btn.btn-step:hover  { background: rgba(56,139,253,.12); }
 
 #status-badge {
@@ -85,7 +96,7 @@ body {
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: .06em;
   text-transform: uppercase;
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -94,27 +105,26 @@ body {
 #status-badge.running { border-color: var(--green);  color: var(--green);  background: rgba(63,185,80,.1); }
 #status-badge.paused  { border-color: var(--orange); color: var(--orange); background: rgba(210,153,34,.1); }
 
-/* ─── LAYOUT PRINCIPAL ─────────────────────────────────────────────────── */
+/* ─── LAYOUT ───────────────────────────────────────────────────────────── */
 #app {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-/* ─── PANEL TITLE ──────────────────────────────────────────────────────── */
 .panel-title {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: .1em;
   color: var(--text-muted);
-  padding: 10px 14px 8px;
+  padding: 9px 14px 7px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 /* ─── PALETA ───────────────────────────────────────────────────────────── */
 #palette-panel {
-  width: 180px;
+  width: 174px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -125,14 +135,14 @@ body {
 
 #palette { padding: 10px 8px; flex: 1; }
 
-.palette-group { margin-bottom: 14px; }
+.palette-group { margin-bottom: 12px; }
 
 .palette-group-title {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: .1em;
   color: var(--text-muted);
-  padding: 0 4px 6px;
+  padding: 0 4px 5px;
 }
 
 .palette-item {
@@ -145,24 +155,26 @@ body {
   color: var(--text);
   font-family: var(--font);
   font-size: 11px;
-  padding: 6px 10px;
+  padding: 6px 9px;
   border-radius: var(--radius);
   cursor: pointer;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   text-align: left;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background .12s, border-color .12s;
 }
 .palette-item:hover    { background: #30363d; border-color: #6e7681; }
 .palette-item.selected { border-color: var(--accent-hl); background: rgba(56,139,253,.12); color: var(--accent-hl); }
 
 .palette-symbol {
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: -1px;
+  font-weight: 700;
+  font-family: monospace;
   color: inherit;
-  font-weight: 600;
+  min-width: 44px;
 }
 .palette-name { font-size: 10px; color: var(--text-muted); }
-.palette-item.selected .palette-name { color: var(--accent-hl); }
+.palette-item.selected .palette-name { color: rgba(56,139,253,.8); }
 
 .palette-hint {
   font-size: 10px;
@@ -170,76 +182,86 @@ body {
   padding: 8px 12px 12px;
   line-height: 1.6;
   border-top: 1px solid var(--border);
-  opacity: 0.7;
+  opacity: .7;
 }
 
-/* ─── ÁREA LADDER ──────────────────────────────────────────────────────── */
+/* ─── ÁREA LADDER (fondo blanco, estilo CADe_SIMU) ────────────────────── */
 #ladder-area {
   flex: 1;
   overflow: auto;
-  padding: 20px 24px;
-  background: var(--bg);
-  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: var(--ld-bg);
+  background-image: radial-gradient(circle, var(--ld-dot) 1px, transparent 1px);
+  background-size: 20px 20px;
+  padding: 24px 32px;
 }
 
-/* Rung vacío / placeholder */
-.ladder-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  height: 100%;
-  color: var(--text-muted);
-}
-.ladder-empty-icon { font-size: 48px; opacity: 0.25; }
-.ladder-empty p    { font-size: 12px; opacity: 0.5; }
-
-/* ── Rung ──────────────────────────────────────────────────────────────── */
+/* ─── RUNG ─────────────────────────────────────────────────────────────── */
 .rung-row {
   display: flex;
   align-items: center;
-  margin-bottom: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 8px;
+  margin-bottom: 10px;
   gap: 0;
-  min-height: 76px;
+  /* sin background propio — el ladder-area blanco es suficiente */
 }
 
 .rung-num {
   font-size: 10px;
-  color: var(--text-muted);
-  width: 24px;
-  text-align: center;
+  color: #999;
+  font-family: monospace;
+  width: 22px;
+  text-align: right;
+  margin-right: 6px;
   flex-shrink: 0;
+  user-select: none;
 }
 
 /* Rails de potencia */
-.power-rail {
-  width: 4px;
+.power-rail-left,
+.power-rail-right {
+  width: 5px;
   height: 60px;
-  background: var(--accent);
+  background: var(--ld-rail);
   border-radius: 2px;
   flex-shrink: 0;
-  opacity: 0.7;
 }
 
-/* Wire fill cuando no hay elementos */
+/* Contenido del rung (elementos + wires) */
+.rung-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-height: 60px;
+  position: relative;
+}
+
+/* Wire horizontal que conecta rail izq → primer elemento */
+.rung-content::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 2px;
+  background: var(--ld-wire);
+  flex-shrink: 0;
+}
+
+/* Wire de cierre (último elemento → rail der) */
+.rung-wire-right {
+  flex: 1;
+  height: 2px;
+  background: var(--ld-wire);
+  min-width: 8px;
+}
+.rung-wire-right.wire-empty {
+  flex: 1;
+}
+
+/* Wire fill (rung sin elementos) */
 .rung-wire-fill {
   flex: 1;
   height: 2px;
-  background: var(--border);
-  margin: 0 4px;
+  background: var(--ld-wire);
 }
-.rung-wire-short {
-  flex: 1;
-  height: 2px;
-  background: var(--border);
-  margin: 0 4px;
-}
+.rung-wire-fill.wire-on { background: var(--ld-wire-on); }
 
 /* ── Elemento Ladder ───────────────────────────────────────────────────── */
 .ladder-elem {
@@ -249,60 +271,117 @@ body {
   cursor: pointer;
   flex-shrink: 0;
   position: relative;
-  border-radius: 4px;
-  transition: background 0.12s;
+  padding: 0 0 2px;
+  border-radius: 3px;
+  transition: background .1s;
 }
-.ladder-elem:hover { background: rgba(56,139,253,.08); }
-.ladder-elem.energized svg { filter: drop-shadow(0 0 4px rgba(63,185,80,.6)); }
+.ladder-elem:hover { background: rgba(0,71,171,.07); }
 
+/* Label encima del símbolo (nombre de variable) */
 .elem-label {
   font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 1px;
-  letter-spacing: 0.03em;
+  font-family: monospace;
+  color: var(--ld-label);
+  line-height: 1;
+  margin-bottom: 1px;
+  letter-spacing: .03em;
+  white-space: nowrap;
 }
-.elem-label.label-on { color: var(--green); font-weight: 600; }
+.elem-label.label-on { color: var(--ld-label-on); font-weight: 700; }
+
+/* SVG del símbolo */
+.ladder-elem svg {
+  display: block;
+  overflow: visible;
+}
 
 /* ── Botones inline del rung ───────────────────────────────────────────── */
-.btn-inline {
+.btn-add-elem {
   background: transparent;
-  border: 1px dashed var(--border);
-  color: var(--text-muted);
+  border: 1.5px dashed #c0c8d4;
+  color: #aaa;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 15px;
   width: 28px;
   height: 28px;
   border-radius: 4px;
   cursor: pointer;
   flex-shrink: 0;
+  margin: 0 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: all .12s;
+  line-height: 1;
 }
-.btn-add-elem:hover { border-color: var(--accent-hl); color: var(--accent-hl); background: rgba(56,139,253,.1); }
-.btn-del-rung       { margin-left: 6px; }
-.btn-del-rung:hover { border-color: var(--red); color: var(--red); background: rgba(248,81,73,.1); }
+.btn-add-elem:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(31,111,235,.08);
+}
 
-/* Footer "Agregar Rung" */
-.rung-footer { margin-top: 6px; }
+.btn-del-rung {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 16px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-left: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .12s, background .12s;
+}
+.btn-del-rung:hover { color: var(--red); background: rgba(248,81,73,.08); }
+
+/* Footer */
+.rung-footer { margin-top: 8px; }
+
 .btn-add-rung {
   background: transparent;
-  border: 1px dashed var(--border);
-  color: var(--text-muted);
+  border: 1.5px dashed #b8c0cc;
+  color: #888;
   font-family: var(--font);
   font-size: 11px;
-  padding: 6px 16px;
+  padding: 6px 18px;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all .12s;
 }
-.btn-add-rung:hover { border-color: var(--green); color: var(--green); background: rgba(63,185,80,.08); }
-.btn-add-first-rung { margin-top: 12px; }
+.btn-add-rung:hover { border-color: var(--green); color: #2a7a3a; background: rgba(63,185,80,.05); }
+
+/* Empty state */
+.ladder-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 300px;
+  color: #bbb;
+}
+.ladder-empty-icon { font-size: 48px; opacity: .2; }
+.ladder-empty p    { font-size: 12px; }
+.btn-add-first-rung {
+  margin-top: 8px;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 7px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.btn-add-first-rung:hover { opacity: .9; }
 
 /* ─── SIDEBAR (variables) ──────────────────────────────────────────────── */
 #sidebar {
-  width: 220px;
+  width: 215px;
   background: var(--surface);
   border-left: 1px solid var(--border);
   display: flex;
@@ -332,12 +411,12 @@ body {
 }
 #var-table td {
   padding: 5px 8px;
-  border-bottom: 1px solid rgba(48,54,61,.5);
+  border-bottom: 1px solid rgba(58,63,74,.5);
 }
-.var-addr     { color: var(--accent-hl); font-weight: 600; }
-.var-val-true { color: var(--green); font-weight: 700; }
-.var-val-false{ color: var(--text-muted); }
-.var-empty    { color: var(--text-muted); font-size: 11px; text-align: center; padding: 16px; }
+.var-addr      { color: var(--accent-hl); font-weight: 600; }
+.var-val-true  { color: var(--green); font-weight: 700; }
+.var-val-false { color: var(--text-muted); }
+.var-empty     { color: var(--text-muted); font-size: 11px; text-align: center; padding: 16px; }
 
 .var-toggle {
   background: transparent;
@@ -367,13 +446,13 @@ body {
   align-items: center;
 }
 #statusbar span { opacity: .85; }
-.sb-key { opacity: .6 !important; }
+.sb-key { opacity: .55 !important; }
 
 /* ─── MODAL ────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.6);
+  background: rgba(0,0,0,.55);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -387,7 +466,7 @@ body {
   border-radius: 10px;
   padding: 24px;
   width: 340px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
 }
 .modal-title {
   font-size: 14px;
@@ -405,7 +484,7 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: .07em;
 }
 .form-row select,
 .form-row input {
@@ -417,13 +496,13 @@ body {
   padding: 7px 10px;
   border-radius: var(--radius);
   outline: none;
-  transition: border-color 0.12s;
+  transition: border-color .12s;
 }
 .form-row select:focus,
 .form-row input:focus { border-color: var(--accent-hl); }
 
 .modal-preview {
-  background: var(--bg);
+  background: #0d1117;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px 14px;
@@ -432,7 +511,7 @@ body {
   color: var(--accent-hl);
   text-align: center;
   margin: 6px 0 18px;
-  letter-spacing: 0.08em;
+  letter-spacing: .08em;
 }
 .modal-actions {
   display: flex;
@@ -454,13 +533,14 @@ body {
   padding: 9px 20px;
   border-radius: 20px;
   z-index: 200;
-  box-shadow: 0 4px 20px rgba(0,0,0,.5);
-  animation: toast-in 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  animation: toast-in .18s ease;
 }
-.toast-error { border-color: var(--red);  color: var(--red); }
+.toast-error { border-color: var(--red);    color: var(--red); }
 .toast-warn  { border-color: var(--orange); color: var(--orange); }
+
 @keyframes toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 

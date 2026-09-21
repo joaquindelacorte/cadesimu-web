@@ -1,98 +1,96 @@
 /**
- * renderer.js — Renderizador HTML+SVG del diagrama Ladder
+ * renderer.js — Renderizador estilo CADe_SIMU (IEC 60617)
  *
- * Cada rung es un div flex-row:
- *   [N] [|RAIL] [SVG elem...] [+] [RAIL|] [×]
- *
- * Los SVG de cada elemento incluyen sus stubs de wire en x=0 y x=80,
- * por lo que al ponerse side-by-side forman un cable continuo.
+ * Fondo blanco · líneas negras → rojas al energizarse
+ * Símbolos IEC: contactos | |  |/|  bobinas rectangulares
  */
 
-/* ── Símbolos SVG ──────────────────────────────────────────────────── */
+/* ── Colores ──────────────────────────────────────────────────────── */
+const C_OFF = '#1a1a1a';
+const C_ON  = '#cc1111';
+const C_DIM = '#999';
 
-const ON  = '#3fb950'; // --green
-const OFF = '#8b949e'; // --text-muted
-
-function wire(col, sw) {
-  return `stroke="${col}" stroke-width="${sw}" stroke-linecap="round" fill="none"`;
+/* ── SVG base ─────────────────────────────────────────────────────── */
+function w(on) {
+  return `stroke="${on ? C_ON : C_OFF}" stroke-width="${on ? 2.5 : 2}" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+}
+function tw(on) {
+  return `fill="${on ? C_ON : C_OFF}" stroke="none"`;
 }
 
+/*
+ * Todos los símbolos usan viewBox="0 0 80 60"
+ * El cable horizontal está en y=30.
+ * x=0 y x=80 son los puntos de conexión.
+ */
 function svgSymbol(type, on) {
-  const col = on ? ON : OFF;
-  const sw  = on ? 2.5 : 2;
-  const w   = wire(col, sw);
-  const txt = `fill="${col}" stroke="none" font-family="monospace" font-size="14" font-weight="bold"`;
+  const ww = w(on);
+  const t  = tw(on);
 
   switch (type) {
+
+    /* ── Contacto NA  —| |— ──────────────────────────────────────── */
     case 'XIC':
       return `
-        <line x1="0"  y1="30" x2="18" y2="30" ${w}/>
-        <line x1="18" y1="12" x2="18" y2="48" ${w}/>
-        <line x1="62" y1="12" x2="62" y2="48" ${w}/>
-        <line x1="62" y1="30" x2="80" y2="30" ${w}/>`;
+        <line x1="0"  y1="30" x2="24" y2="30" ${ww}/>
+        <line x1="24" y1="14" x2="24" y2="46" ${ww}/>
+        <line x1="56" y1="14" x2="56" y2="46" ${ww}/>
+        <line x1="56" y1="30" x2="80" y2="30" ${ww}/>`;
 
+    /* ── Contacto NC  —|/|— ──────────────────────────────────────── */
     case 'XIO':
       return `
-        <line x1="0"  y1="30" x2="18" y2="30" ${w}/>
-        <line x1="18" y1="12" x2="18" y2="48" ${w}/>
-        <line x1="62" y1="12" x2="62" y2="48" ${w}/>
-        <line x1="62" y1="30" x2="80" y2="30" ${w}/>
-        <line x1="18" y1="48" x2="62" y2="12" ${w}/>`;
+        <line x1="0"  y1="30" x2="24" y2="30" ${ww}/>
+        <line x1="24" y1="14" x2="24" y2="46" ${ww}/>
+        <line x1="56" y1="14" x2="56" y2="46" ${ww}/>
+        <line x1="56" y1="30" x2="80" y2="30" ${ww}/>
+        <line x1="24" y1="44" x2="56" y2="16" ${ww}/>`;
 
+    /* ── Bobina OTE  —[ ]— ───────────────────────────────────────── */
     case 'OTE':
       return `
-        <line x1="0"  y1="30" x2="16" y2="30" ${w}/>
-        <path d="M 27 10 Q 12 30 27 50" ${w}/>
-        <path d="M 53 10 Q 68 30 53 50" ${w}/>
-        <line x1="64" y1="30" x2="80" y2="30" ${w}/>`;
+        <line x1="0"  y1="30" x2="16" y2="30" ${ww}/>
+        <rect x="16" y="19" width="48" height="22" rx="2" ${ww}/>
+        <line x1="64" y1="30" x2="80" y2="30" ${ww}/>`;
 
+    /* ── Bobina Set  —[S]— ───────────────────────────────────────── */
     case 'OTL':
       return `
-        <line x1="0"  y1="30" x2="16" y2="30" ${w}/>
-        <path d="M 27 10 Q 12 30 27 50" ${w}/>
-        <path d="M 53 10 Q 68 30 53 50" ${w}/>
-        <text x="40" y="35" text-anchor="middle" ${txt}>S</text>
-        <line x1="64" y1="30" x2="80" y2="30" ${w}/>`;
+        <line x1="0"  y1="30" x2="16" y2="30" ${ww}/>
+        <rect x="16" y="19" width="48" height="22" rx="2" ${ww}/>
+        <text x="40" y="35" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" ${t}>S</text>
+        <line x1="64" y1="30" x2="80" y2="30" ${ww}/>`;
 
+    /* ── Bobina Reset  —[R]— ─────────────────────────────────────── */
     case 'OTU':
       return `
-        <line x1="0"  y1="30" x2="16" y2="30" ${w}/>
-        <path d="M 27 10 Q 12 30 27 50" ${w}/>
-        <path d="M 53 10 Q 68 30 53 50" ${w}/>
-        <text x="40" y="35" text-anchor="middle" ${txt}>R</text>
-        <line x1="64" y1="30" x2="80" y2="30" ${w}/>`;
+        <line x1="0"  y1="30" x2="16" y2="30" ${ww}/>
+        <rect x="16" y="19" width="48" height="22" rx="2" ${ww}/>
+        <text x="40" y="35" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" ${t}>R</text>
+        <line x1="64" y1="30" x2="80" y2="30" ${ww}/>`;
 
     default:
-      return `<text x="5" y="35" fill="red" stroke="none" font-size="11">${type}?</text>`;
+      return `
+        <line x1="0"  y1="30" x2="80" y2="30" stroke="#f00" stroke-width="1" fill="none"/>
+        <text x="5" y="26" fill="red" stroke="none" font-size="9">${type}?</text>`;
   }
 }
 
-/* ── LadderRenderer ────────────────────────────────────────────────── */
-
+/* ── LadderRenderer ───────────────────────────────────────────────── */
 export class LadderRenderer {
-  /**
-   * @param {HTMLElement} container
-   * @param {{
-   *   onElementClick: (rungId: string, idx: number) => void,
-   *   onAddElement:   (rungId: string) => void,
-   *   onRemoveRung:   (rungId: string) => void,
-   *   onAddRungAfter: (afterIndex: number) => void,
-   * }} callbacks
-   */
   constructor(container, callbacks) {
     this.container = container;
     this.cb = callbacks;
   }
 
   /* ── Render completo ────────────────────────────────────────────── */
-
   render(rungs, vars) {
     if (rungs.length === 0) {
       this.container.innerHTML = `
         <div class="ladder-empty">
           <div class="ladder-empty-icon">⚡</div>
-          <p>Programa vacío.</p>
-          <button class="btn btn-play btn-add-first-rung">+ Agregar primer Rung</button>
+          <p>Programa vacío</p>
+          <button class="btn btn-add-first-rung">+ Agregar primer Rung</button>
         </div>`;
       this.container.querySelector('.btn-add-first-rung')
         ?.addEventListener('click', () => this.cb.onAddRungAfter?.(-1));
@@ -102,14 +100,13 @@ export class LadderRenderer {
     this.container.innerHTML =
       rungs.map((rung, i) => this._rungHTML(rung, i, vars)).join('') +
       `<div class="rung-footer">
-         <button class="btn btn-add-rung" data-after="${rungs.length - 1}">+ Agregar Rung</button>
+         <button class="btn-add-rung" data-after="${rungs.length - 1}">＋ Agregar Rung</button>
        </div>`;
 
     this._attach();
   }
 
-  /* ── Actualización parcial (durante scan, sin reconstruir el DOM) ── */
-
+  /* ── Actualización ligera durante scan ──────────────────────────── */
   updateStates(rungs, vars) {
     for (const rung of rungs) {
       for (let i = 0; i < rung.elements.length; i++) {
@@ -119,52 +116,71 @@ export class LadderRenderer {
           `[data-rung="${rung.id}"][data-idx="${i}"]`
         );
         if (!dom) continue;
-
         dom.classList.toggle('energized', on);
         const svg = dom.querySelector('svg');
         if (svg) svg.innerHTML = svgSymbol(el.type, on);
+
+        // actualizar wire izquierdo del elemento
+        const wire = dom.querySelector('.elem-wire-left');
+        if (wire) wire.classList.toggle('wire-on', on);
+
         const lbl = dom.querySelector('.elem-label');
         if (lbl) lbl.classList.toggle('label-on', on);
       }
+
+      // actualizar wire fill (cuando no hay elementos)
+      const fill = this.container.querySelector(`.rung-wire-fill[data-rung="${rung.id}"]`);
+      if (fill) fill.classList.toggle('wire-on', false);
     }
   }
 
-  /* ── Generación HTML ────────────────────────────────────────────── */
-
+  /* ── Genera HTML de un rung ─────────────────────────────────────── */
   _rungHTML(rung, idx, vars) {
     const elems = rung.elements;
 
     const elemsHTML = elems.length === 0
-      ? `<div class="rung-wire-fill"></div>`
+      ? `<div class="rung-wire-fill" data-rung="${rung.id}"></div>`
       : elems.map((el, i) => {
           const on = vars ? vars.getBool(el.addrType, el.address) : false;
+          const isCoil = ['OTE','OTL','OTU'].includes(el.type);
           return `
-            <div class="ladder-elem${on ? ' energized' : ''}"
+            <div class="ladder-elem${on ? ' energized' : ''}${isCoil ? ' is-coil' : ''}"
                  data-rung="${rung.id}" data-idx="${i}"
                  title="Click para editar · ${el.type} ${el.label}">
-              <svg viewBox="0 0 80 60" width="80" height="60">
+              <div class="elem-label${on ? ' label-on' : ''}">${el.label}</div>
+              <svg viewBox="0 0 80 60" width="80" height="60" xmlns="http://www.w3.org/2000/svg">
                 ${svgSymbol(el.type, on)}
               </svg>
-              <div class="elem-label${on ? ' label-on' : ''}">${el.label}</div>
             </div>`;
         }).join('');
+
+    const hasElems = elems.length > 0;
 
     return `
       <div class="rung-row" data-id="${rung.id}">
         <div class="rung-num">${idx}</div>
-        <div class="power-rail"></div>
-        ${elemsHTML}
-        <button class="btn-inline btn-add-elem" data-rung="${rung.id}" title="Agregar elemento (seleccioná un componente primero)">+</button>
-        <div class="rung-wire-short"></div>
-        <div class="power-rail"></div>
-        <button class="btn-inline btn-del-rung" data-rung="${rung.id}" title="Eliminar rung">×</button>
+
+        <!-- Rail izquierdo -->
+        <div class="power-rail-left"></div>
+
+        <!-- Contenido del rung -->
+        <div class="rung-content">
+          ${elemsHTML}
+          <button class="btn-add-elem" data-rung="${rung.id}" title="Insertar componente (seleccioná uno en la paleta)">＋</button>
+          <!-- wire de cierre hacia el rail derecho -->
+          <div class="rung-wire-right${hasElems ? '' : ' wire-empty'}"></div>
+        </div>
+
+        <!-- Rail derecho -->
+        <div class="power-rail-right"></div>
+
+        <!-- Eliminar rung -->
+        <button class="btn-del-rung" data-rung="${rung.id}" title="Eliminar rung">×</button>
       </div>`;
   }
 
   /* ── Event listeners ────────────────────────────────────────────── */
-
   _attach() {
-    // Click en elemento → editar variable
     this.container.querySelectorAll('.ladder-elem').forEach(el => {
       el.addEventListener('click', e => {
         e.stopPropagation();
@@ -172,7 +188,6 @@ export class LadderRenderer {
       });
     });
 
-    // Botón + en rung
     this.container.querySelectorAll('.btn-add-elem').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
@@ -180,17 +195,13 @@ export class LadderRenderer {
       });
     });
 
-    // Botón × eliminar rung
     this.container.querySelectorAll('.btn-del-rung').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        if (confirm('¿Eliminar este rung?')) {
-          this.cb.onRemoveRung?.(btn.dataset.rung);
-        }
+        if (confirm('¿Eliminar este rung?')) this.cb.onRemoveRung?.(btn.dataset.rung);
       });
     });
 
-    // Botón + Agregar Rung (footer)
     this.container.querySelectorAll('.btn-add-rung').forEach(btn => {
       btn.addEventListener('click', () => {
         this.cb.onAddRungAfter?.(parseInt(btn.dataset.after ?? '-1', 10));
