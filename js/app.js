@@ -1,31 +1,27 @@
 /**
- * app.js — Entry point CADESIMU Web (Fase 1: editor visual)
- *
- * Orquesta: ProgramState ← → LadderRenderer + Palette + Modal + ScanEngine
+ * app.js — Entry point CADESIMU Web (Fase 2: editor de esquemático libre)
  */
 
-import { VariableTable }  from './engine/variables.js';
-import { ScanEngine }     from './engine/scan.js';
-import { ProgramState }   from './editor/state.js';
-import { LadderRenderer } from './editor/renderer.js';
-import { Palette }        from './editor/palette.js';
-import { VariableModal }  from './editor/modal.js';
-import { exportProject, downloadProject, importProjectFromFile, parseProject } from './io/json.js';
+import { SchematicState }  from './editor/schematic.js';
+import { SchematicEngine } from './editor/engine2.js';
+import { SchematicCanvas } from './editor/canvas.js';
+import { Palette2 }        from './editor/palette2.js';
+import { PropsPanel }      from './editor/props.js';
+import { exportProject, downloadProject, importProjectFromFile } from './io/json.js';
+import { getComponentDef } from './editor/symbols.js';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Estado global
+   Estado
 ═══════════════════════════════════════════════════════════════════════ */
-const vars    = new VariableTable();
-const prog    = new ProgramState();
-const engine  = new ScanEngine(vars);
-const modal   = new VariableModal();
+const schematic = new SchematicState();
+const engine    = new SchematicEngine(schematic);
 
 /* ═══════════════════════════════════════════════════════════════════════
-   DOM refs
+   DOM
 ═══════════════════════════════════════════════════════════════════════ */
-const ladderArea   = document.getElementById('ladder-area');
+const svgEl        = document.getElementById('schematic-svg');
 const paletteEl    = document.getElementById('palette');
-const varTbody     = document.getElementById('var-tbody');
+const propsEl      = document.getElementById('props-panel');
 const badge        = document.getElementById('status-badge');
 const scanCountEl  = document.getElementById('scan-counter');
 const sbScan       = document.getElementById('sb-scan');
@@ -35,114 +31,172 @@ const btnPlay      = document.getElementById('btn-play');
 const btnPause     = document.getElementById('btn-pause');
 const btnStop      = document.getElementById('btn-stop');
 const btnStep      = document.getElementById('btn-step');
-const btnNewRung   = document.getElementById('btn-new-rung');
+const btnWire      = document.getElementById('btn-wire');
 const btnExport    = document.getElementById('btn-export');
 const btnImport    = document.getElementById('btn-import');
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Paleta
+   Canvas
 ═══════════════════════════════════════════════════════════════════════ */
-const palette = new Palette(paletteEl);
-palette.render();
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Renderer
-═══════════════════════════════════════════════════════════════════════ */
-const renderer = new LadderRenderer(ladderArea, {
-  onAddElement(rungId) {
-    const type = palette.getSelected();
-    if (!type) { toast('Primero seleccioná un componente de la paleta.', 'warn'); return; }
-    prog.addElement(rungId, type);
+const canvas = new SchematicCanvas(svgEl, schematic, {
+  onComponentClick(compId) {
+    const comp = schematic.components.get(compId);
+    props.show(comp);
   },
-  async onElementClick(rungId, idx) {
-    const rung = prog.rungs.find(r => r.id === rungId);
-    if (!rung) return;
-    const el = rung.elements[idx];
-    if (!el) return;
-    const result = await modal.open({ addrType: el.addrType, address: el.address });
-    if (!result) return;
-    prog.updateElement(rungId, idx, result);
-    // Asegurar que la variable esté definida en la tabla
-    ensureVar(result.addrType, result.address);
-    fullRender();
+  onWireComplete() {
+    // Volver al modo select después de trazar un cable
+    setMode('select');
   },
-  onRemoveRung(rungId) { prog.removeRung(rungId); },
-  onAddRungAfter(afterIndex) { prog.addRung(afterIndex); },
+  onModeChange(mode) {
+    updateModeUI(mode);
+  },
 });
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Variables — asegurar existencia antes de leer
+   Paleta
 ═══════════════════════════════════════════════════════════════════════ */
-function ensureVar(type, address) {
-  if (vars.get(type, address) === undefined) {
-    if      (type === 'I') vars.defineInput(address, false);
-    else if (type === 'Q') vars.defineOutput(address, false);
-    else if (type === 'M') vars.defineMark(address, false);
+const palette = new Palette2(paletteEl);
+palette.render();
+palette.onSelect(type => {
+  if (!type) return;
+  // Click doble en la paleta = colocar en el canvas en posición default
+  // Aquí: colocar con una posición incremental para no apilar
+  const count = schematic.components.size;
+  const x = SNAP(80 + (count % 6) * 120);
+  const y = SNAP(80 + Math.floor(count / 6) * 100);
+  const comp = schematic.addComponent(type, { x, y });
+  canvas.render();
+  canvas.cb.onComponentClick(comp.id);
+});
+
+function SNAP(v) { return Math.round(v / 10) * 10; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Propiedades
+═══════════════════════════════════════════════════════════════════════ */
+const props = new PropsPanel(propsEl, (compId, patch) => {
+  if (patch === null) {
+    schematic.removeComponent(compId);
+    canvas.render();
+    props.clear();
+  } else {
+    schematic.updateComponent(compId, patch);
+    canvas.render();
   }
+});
+props.clear();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Modo herramienta
+═══════════════════════════════════════════════════════════════════════ */
+function setMode(mode) {
+  canvas.setMode(mode);
+  updateModeUI(mode);
 }
 
-function ensureAllVars() {
-  for (const rung of prog.rungs) {
-    for (const el of rung.elements) {
-      ensureVar(el.addrType, el.address);
-    }
-  }
+function updateModeUI(mode) {
+  btnWire?.classList.toggle('active-tool', mode === 'wire');
+  svgEl.style.cursor = mode === 'wire' ? 'crosshair' : 'default';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Render completo (reconstruye el DOM del ladder y la tabla de variables)
+   Toolbar
 ═══════════════════════════════════════════════════════════════════════ */
-function fullRender() {
-  ensureAllVars();
-  renderer.render(prog.rungs, vars);
-  renderVarTable();
-}
+btnWire?.addEventListener('click', () => {
+  const newMode = canvas.mode === 'wire' ? 'select' : 'wire';
+  setMode(newMode);
+  toast(newMode === 'wire'
+    ? 'Modo cable: click en terminal origen → terminal destino. ESC para cancelar.'
+    : 'Modo selección');
+});
 
-/* ═══════════════════════════════════════════════════════════════════════
-   Tabla de variables (sidebar)
-═══════════════════════════════════════════════════════════════════════ */
-function renderVarTable() {
-  const rows = vars.snapshot()
-    .filter(r => r.type === 'I' || r.type === 'Q' || r.type === 'M');
+btnPlay?.addEventListener('click', () => {
+  engine.start();
+  setBadge('RUNNING');
+});
 
-  if (rows.length === 0) {
-    varTbody.innerHTML = `<tr><td colspan="3" class="var-empty">Sin variables</td></tr>`;
-    return;
-  }
+btnPause?.addEventListener('click', () => {
+  engine.pause();
+  setBadge('PAUSED');
+});
 
-  varTbody.innerHTML = rows.map(({ type, address, value }) => {
-    const boolVal = Boolean(value);
-    const valClass = boolVal ? 'var-val-true' : 'var-val-false';
-    const canToggle = type === 'I';
-    const toggleBtn = canToggle
-      ? `<button class="var-toggle" data-type="${type}" data-addr="${address}"
-                 title="Toggle">
-           ${boolVal ? '⬛' : '⬜'}
-         </button>`
-      : '';
-    return `
-      <tr>
-        <td class="var-addr">${type}.${address}</td>
-        <td class="${valClass}">${boolVal ? '1' : '0'}</td>
-        <td>${toggleBtn}</td>
-      </tr>`;
-  }).join('');
+btnStop?.addEventListener('click', () => {
+  engine.stop();
+  canvas.render();
+  setBadge('DETENIDO');
+});
 
-  // Toggle de entradas
-  varTbody.querySelectorAll('.var-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const { type, addr } = btn.dataset;
-      vars.set(type, addr, !vars.getBool(type, addr));
-      if (!engine.running) {
-        renderVarTable();
-        renderer.updateStates(prog.rungs, vars);
+btnStep?.addEventListener('click', () => {
+  engine.step();
+  canvas.updateStates();
+  setBadge('PAUSED');
+});
+
+btnExport?.addEventListener('click', () => {
+  const data = schematic.toJSON();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `${data.meta.title.replace(/\s+/g,'_')}.cadesimu.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast('Exportado ✓');
+});
+
+btnImport?.addEventListener('click', async () => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.cadesimu.json,application/json';
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        schematic.fromJSON(data);
+        engine.stop();
+        canvas.render();
+        setBadge('DETENIDO');
+        toast('Importado ✓');
+      } catch (err) {
+        toast(`Error: ${err.message}`, 'error');
       }
-    });
-  });
-}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+});
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Badge / status bar
+   Motor events
+═══════════════════════════════════════════════════════════════════════ */
+let _t0 = 0;
+engine.on('scan', ({ scanCount, deltaMs }) => {
+  canvas.updateStates();
+  scanCountEl.textContent = `Scan #${scanCount}`;
+  sbScan.textContent = scanCount;
+  sbTime.textContent = `${deltaMs.toFixed(1)} ms`;
+});
+
+engine.on('stop', () => {
+  canvas.render();
+  setBadge('DETENIDO');
+  scanCountEl.textContent = 'Scan #0';
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Cajetín
+═══════════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('[data-meta]').forEach(el => {
+  const key = el.dataset.meta;
+  el.addEventListener('input', () => {
+    schematic.meta[key] = el.textContent.trim();
+  });
+  el.textContent = schematic.meta[key] ?? '';
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Helpers
 ═══════════════════════════════════════════════════════════════════════ */
 function setBadge(state) {
   badge.textContent = state;
@@ -151,111 +205,17 @@ function setBadge(state) {
   if (state === 'PAUSED')  badge.classList.add('paused');
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   Motor de scan → actualización ligera (sin reconstruir DOM)
-═══════════════════════════════════════════════════════════════════════ */
-engine.on('scan', ({ scanCount, scanTimeMs }) => {
-  renderer.updateStates(prog.rungs, vars);
-  renderVarTable();
-  scanCountEl.textContent = `Scan #${scanCount}`;
-  sbScan.textContent = scanCount;
-  sbTime.textContent = `${scanTimeMs.toFixed(2)} ms`;
-});
-
-engine.on('stop', () => {
-  fullRender();
-  setBadge('DETENIDO');
-  scanCountEl.textContent = 'Scan #0';
-});
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Toolbar: Play / Pause / Stop / Step
-═══════════════════════════════════════════════════════════════════════ */
-btnPlay.addEventListener('click', () => {
-  ensureAllVars();
-  engine.loadProgram(prog.toRungs());
-  engine.start();
-  setBadge('RUNNING');
-});
-
-btnPause.addEventListener('click', () => {
-  engine.pause();
-  setBadge('PAUSED');
-});
-
-btnStop.addEventListener('click', () => {
-  engine.stop();
-  setBadge('DETENIDO');
-});
-
-btnStep.addEventListener('click', () => {
-  if (!engine.running) {
-    ensureAllVars();
-    engine.loadProgram(prog.toRungs());
-  }
-  engine.step();
-  setBadge('PAUSED');
-  renderer.updateStates(prog.rungs, vars);
-  renderVarTable();
-});
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Toolbar: Nuevo rung
-═══════════════════════════════════════════════════════════════════════ */
-btnNewRung?.addEventListener('click', () => {
-  prog.addRung(prog.rungs.length - 1);
-});
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Export / Import
-═══════════════════════════════════════════════════════════════════════ */
-btnExport?.addEventListener('click', () => {
-  ensureAllVars();
-  const project = exportProject({
-    vars,
-    rungs: prog.toRungs(),
-    meta:  { title: 'Mi programa CADESIMU', author: '' },
-  });
-  downloadProject(project);
-  toast('Proyecto exportado ✓');
-});
-
-btnImport?.addEventListener('click', async () => {
-  const { ok, project, error } = await importProjectFromFile();
-  if (!ok) { toast(error ?? 'Error al importar', 'error'); return; }
-
-  prog.fromJSON(project.rungs);
-  vars.fromJSON(project.variables);
-  engine.stop();
-  fullRender();
-  toast('Proyecto importado ✓');
-});
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Toast
-═══════════════════════════════════════════════════════════════════════ */
 function toast(msg, type = 'info') {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2800);
+  setTimeout(() => el.remove(), 3000);
 }
-
-/* ═══════════════════════════════════════════════════════════════════════
-   ProgramState → recarga el motor en caliente cuando cambia el programa
-   (sólo si ya estaba corriendo)
-═══════════════════════════════════════════════════════════════════════ */
-prog.onChange(() => {
-  fullRender();
-  if (engine.running) {
-    engine.loadProgram(prog.toRungs());
-  }
-});
 
 /* ═══════════════════════════════════════════════════════════════════════
    Arranque
 ═══════════════════════════════════════════════════════════════════════ */
-fullRender();
+canvas.render();
 setBadge('DETENIDO');
-console.log('[CADESIMU] Fase 1 lista. Seleccioná un componente → + Rung → +  para armar el circuito.');
+console.log('[CADESIMU] Fase 2 — Editor de esquemático libre. Seleccioná componente en paleta → aparece en canvas.');

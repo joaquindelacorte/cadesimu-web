@@ -1,30 +1,24 @@
-/* ─── CADESIMU WEB — main.css (Fase 1 · estilo CADe_SIMU) ─────────────── */
+/* ─── CADESIMU WEB — main.css (Fase 2 · editor de esquemático libre) ──── */
 
 :root {
-  /* Shell (toolbar, sidebars) — oscuro */
-  --bg:          #1a1d21;
-  --surface:     #22262c;
-  --surface2:    #2a2f37;
-  --border:      #3a3f4a;
-  --accent:      #1f6feb;
-  --accent-hl:   #388bfd;
-  --green:       #3fb950;
-  --red:         #f85149;
-  --orange:      #d29922;
-  --text:        #e6edf3;
-  --text-muted:  #8b949e;
+  /* Shell */
+  --bg:         #1a1d21;
+  --surface:    #22262c;
+  --surface2:   #2a2f37;
+  --border:     #3a3f4a;
+  --accent:     #1f6feb;
+  --accent-hl:  #388bfd;
+  --green:      #3fb950;
+  --red:        #f85149;
+  --orange:     #d29922;
+  --text:       #e6edf3;
+  --text-muted: #8b949e;
+  --font:       'JetBrains Mono', 'Consolas', monospace;
+  --radius:     6px;
 
-  /* Diagrama — claro */
-  --ld-bg:       #ffffff;
-  --ld-dot:      #d0d4da;
-  --ld-rail:     #0047ab;   /* bus de potencia azul */
-  --ld-wire:     #1a1a1a;
-  --ld-wire-on:  #cc1111;
-  --ld-label:    #333;
-  --ld-label-on: #cc1111;
-
-  --font:    'JetBrains Mono', 'Consolas', monospace;
-  --radius:  6px;
+  /* Canvas */
+  --ld-bg:   #ffffff;
+  --ld-rail: #0047ab;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -52,15 +46,13 @@ body {
   user-select: none;
   flex-wrap: wrap;
 }
-
 #toolbar .logo {
   font-size: 15px;
   font-weight: 700;
   color: var(--accent-hl);
-  letter-spacing: 0.04em;
+  letter-spacing: .04em;
   margin-right: 4px;
 }
-
 .toolbar-sep { width: 1px; height: 24px; background: var(--border); }
 
 .btn {
@@ -89,6 +81,8 @@ body {
 .btn.btn-stop:hover  { background: rgba(248,81,73,.12); }
 .btn.btn-step  { border-color: var(--accent-hl); color: var(--accent-hl); }
 .btn.btn-step:hover  { background: rgba(56,139,253,.12); }
+.btn.btn-wire  { border-color: var(--orange); color: var(--orange); }
+.btn.btn-wire.active-tool { background: rgba(210,153,34,.18); border-color: var(--orange); }
 
 #status-badge {
   margin-left: auto;
@@ -122,9 +116,9 @@ body {
   flex-shrink: 0;
 }
 
-/* ─── PALETA ───────────────────────────────────────────────────────────── */
+/* ─── PALETA IZQUIERDA ─────────────────────────────────────────────────── */
 #palette-panel {
-  width: 174px;
+  width: 170px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -132,307 +126,208 @@ body {
   flex-shrink: 0;
   overflow-y: auto;
 }
+#palette { padding: 8px 6px; flex: 1; }
 
-#palette { padding: 10px 8px; flex: 1; }
-
-.palette-group { margin-bottom: 12px; }
-
+.palette-group { margin-bottom: 10px; }
 .palette-group-title {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: .1em;
   color: var(--text-muted);
-  padding: 0 4px 5px;
+  padding: 0 4px 4px;
 }
-
 .palette-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--font);
-  font-size: 11px;
-  padding: 6px 9px;
+  font-size: 10px;
+  padding: 5px 8px;
   border-radius: var(--radius);
   cursor: pointer;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   text-align: left;
   transition: background .12s, border-color .12s;
 }
 .palette-item:hover    { background: #30363d; border-color: #6e7681; }
 .palette-item.selected { border-color: var(--accent-hl); background: rgba(56,139,253,.12); color: var(--accent-hl); }
-
-.palette-symbol {
-  font-size: 11px;
-  letter-spacing: -1px;
-  font-weight: 700;
-  font-family: monospace;
-  color: inherit;
-  min-width: 44px;
-}
 .palette-name { font-size: 10px; color: var(--text-muted); }
 .palette-item.selected .palette-name { color: rgba(56,139,253,.8); }
 
 .palette-hint {
   font-size: 10px;
   color: var(--text-muted);
-  padding: 8px 12px 12px;
-  line-height: 1.6;
+  padding: 8px 10px 12px;
+  line-height: 1.65;
   border-top: 1px solid var(--border);
   opacity: .7;
 }
 
-/* ─── ÁREA LADDER (fondo blanco, estilo CADe_SIMU) ────────────────────── */
-#ladder-area {
+/* ─── CANVAS WRAP ──────────────────────────────────────────────────────── */
+#canvas-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+/* Regla columnas */
+#col-ruler {
+  display: flex;
+  flex-shrink: 0;
+  background: #e8ebef;
+  border-bottom: 1px solid #bcc1ca;
+  height: 22px;
+}
+.ruler-corner {
+  width: 22px;
+  flex-shrink: 0;
+  border-right: 1px solid #bcc1ca;
+}
+.ruler-cell {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  font-family: monospace;
+  color: #666;
+  line-height: 22px;
+  border-right: 1px solid #d0d4da;
+}
+
+/* Cuerpo canvas (regla filas + svg) */
+#canvas-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+#row-ruler {
+  width: 22px;
+  flex-shrink: 0;
+  background: #e8ebef;
+  border-right: 1px solid #bcc1ca;
+  display: flex;
+  flex-direction: column;
+}
+#row-ruler .ruler-cell {
+  flex: 1;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: none;
+  border-bottom: 1px solid #d0d4da;
+}
+
+#svg-container {
   flex: 1;
   overflow: auto;
-  background-color: var(--ld-bg);
-  background-image: radial-gradient(circle, var(--ld-dot) 1px, transparent 1px);
-  background-size: 20px 20px;
-  padding: 24px 32px;
+  background: var(--ld-bg);
 }
 
-/* ─── RUNG ─────────────────────────────────────────────────────────────── */
-.rung-row {
+#schematic-svg {
+  display: block;
+  cursor: default;
+}
+
+/* ─── CAJETÍN TÉCNICO ──────────────────────────────────────────────────── */
+#title-block {
   display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  gap: 0;
-  /* sin background propio — el ladder-area blanco es suficiente */
+  flex-shrink: 0;
+  border-top: 2px solid #888;
+  background: #fff;
+  height: 40px;
 }
-
-.rung-num {
-  font-size: 10px;
+.tb-field {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 10px;
+  border-right: 1px solid #bbb;
+  min-width: 100px;
+}
+.tb-field.tb-wide { min-width: 220px; }
+.tb-key {
+  font-size: 9px;
   color: #999;
+  text-transform: uppercase;
+  letter-spacing: .06em;
   font-family: monospace;
-  width: 22px;
-  text-align: right;
-  margin-right: 6px;
-  flex-shrink: 0;
-  user-select: none;
 }
-
-/* Rails de potencia */
-.power-rail-left,
-.power-rail-right {
-  width: 5px;
-  height: 60px;
-  background: var(--ld-rail);
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-/* Contenido del rung (elementos + wires) */
-.rung-content {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-height: 60px;
-  position: relative;
-}
-
-/* Wire horizontal que conecta rail izq → primer elemento */
-.rung-content::before {
-  content: '';
-  display: block;
-  width: 8px;
-  height: 2px;
-  background: var(--ld-wire);
-  flex-shrink: 0;
-}
-
-/* Wire de cierre (último elemento → rail der) */
-.rung-wire-right {
-  flex: 1;
-  height: 2px;
-  background: var(--ld-wire);
-  min-width: 8px;
-}
-.rung-wire-right.wire-empty {
-  flex: 1;
-}
-
-/* Wire fill (rung sin elementos) */
-.rung-wire-fill {
-  flex: 1;
-  height: 2px;
-  background: var(--ld-wire);
-}
-.rung-wire-fill.wire-on { background: var(--ld-wire-on); }
-
-/* ── Elemento Ladder ───────────────────────────────────────────────────── */
-.ladder-elem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  position: relative;
-  padding: 0 0 2px;
-  border-radius: 3px;
-  transition: background .1s;
-}
-.ladder-elem:hover { background: rgba(0,71,171,.07); }
-
-/* Label encima del símbolo (nombre de variable) */
-.elem-label {
-  font-size: 10px;
-  font-family: monospace;
-  color: var(--ld-label);
-  line-height: 1;
-  margin-bottom: 1px;
-  letter-spacing: .03em;
-  white-space: nowrap;
-}
-.elem-label.label-on { color: var(--ld-label-on); font-weight: 700; }
-
-/* SVG del símbolo */
-.ladder-elem svg {
-  display: block;
-  overflow: visible;
-}
-
-/* ── Botones inline del rung ───────────────────────────────────────────── */
-.btn-add-elem {
-  background: transparent;
-  border: 1.5px dashed #c0c8d4;
-  color: #aaa;
-  font-family: var(--font);
-  font-size: 15px;
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all .12s;
-  line-height: 1;
-}
-.btn-add-elem:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(31,111,235,.08);
-}
-
-.btn-del-rung {
-  background: transparent;
-  border: none;
-  color: #ccc;
-  font-size: 16px;
-  width: 22px;
-  height: 22px;
-  cursor: pointer;
-  border-radius: 3px;
-  flex-shrink: 0;
-  margin-left: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color .12s, background .12s;
-}
-.btn-del-rung:hover { color: var(--red); background: rgba(248,81,73,.08); }
-
-/* Footer */
-.rung-footer { margin-top: 8px; }
-
-.btn-add-rung {
-  background: transparent;
-  border: 1.5px dashed #b8c0cc;
-  color: #888;
-  font-family: var(--font);
+.tb-val {
   font-size: 11px;
-  padding: 6px 18px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all .12s;
-}
-.btn-add-rung:hover { border-color: var(--green); color: #2a7a3a; background: rgba(63,185,80,.05); }
-
-/* Empty state */
-.ladder-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  min-height: 300px;
-  color: #bbb;
-}
-.ladder-empty-icon { font-size: 48px; opacity: .2; }
-.ladder-empty p    { font-size: 12px; }
-.btn-add-first-rung {
-  margin-top: 8px;
-  background: var(--accent);
+  font-family: monospace;
+  color: #222;
+  font-weight: 600;
+  outline: none;
   border: none;
-  color: #fff;
-  font-family: var(--font);
-  font-size: 12px;
-  padding: 7px 20px;
-  border-radius: var(--radius);
-  cursor: pointer;
+  background: transparent;
+  min-width: 60px;
 }
-.btn-add-first-rung:hover { opacity: .9; }
+.tb-val:focus { color: var(--accent); }
+.tb-val:empty::before { content: attr(data-meta); color: #ccc; }
 
-/* ─── SIDEBAR (variables) ──────────────────────────────────────────────── */
-#sidebar {
-  width: 215px;
+/* ─── PROPIEDADES DERECHA ──────────────────────────────────────────────── */
+#props-sidebar {
+  width: 210px;
   background: var(--surface);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
-#var-table-wrap { flex: 1; overflow-y: auto; }
+#props-panel { padding: 12px 10px; }
 
-#var-table {
-  width: 100%;
-  border-collapse: collapse;
+.props-title {
   font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
 }
-#var-table th {
-  position: sticky;
-  top: 0;
-  background: var(--surface2);
+.props-empty {
+  font-size: 11px;
   color: var(--text-muted);
-  font-weight: 500;
-  padding: 6px 8px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  font-size: 10px;
-  text-transform: uppercase;
+  line-height: 1.6;
+  opacity: .7;
 }
-#var-table td {
-  padding: 5px 8px;
-  border-bottom: 1px solid rgba(58,63,74,.5);
-}
-.var-addr      { color: var(--accent-hl); font-weight: 600; }
-.var-val-true  { color: var(--green); font-weight: 700; }
-.var-val-false { color: var(--text-muted); }
-.var-empty     { color: var(--text-muted); font-size: 11px; text-align: center; padding: 16px; }
-
-.var-toggle {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 12px;
-  width: 24px;
-  height: 20px;
-  border-radius: 3px;
-  cursor: pointer;
+.form-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
 }
-.var-toggle:hover { border-color: var(--accent-hl); }
+.form-row label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+.form-row input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color .12s;
+  width: 100%;
+}
+.form-row input:focus { border-color: var(--accent-hl); }
+.props-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.props-actions .btn { flex: 1; justify-content: center; font-size: 11px; }
 
 /* ─── STATUS BAR ───────────────────────────────────────────────────────── */
 #statusbar {
@@ -447,77 +342,6 @@ body {
 }
 #statusbar span { opacity: .85; }
 .sb-key { opacity: .55 !important; }
-
-/* ─── MODAL ────────────────────────────────────────────────────────────── */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.55);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal-overlay.hidden { display: none; }
-
-.modal-box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 24px;
-  width: 340px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
-}
-.modal-title {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 18px;
-  color: var(--text);
-}
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-bottom: 14px;
-}
-.form-row label {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: .07em;
-}
-.form-row select,
-.form-row input {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 13px;
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  outline: none;
-  transition: border-color .12s;
-}
-.form-row select:focus,
-.form-row input:focus { border-color: var(--accent-hl); }
-
-.modal-preview {
-  background: #0d1117;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 14px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--accent-hl);
-  text-align: center;
-  margin: 6px 0 18px;
-  letter-spacing: .08em;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
 
 /* ─── TOAST ────────────────────────────────────────────────────────────── */
 .toast {
@@ -535,6 +359,8 @@ body {
   z-index: 200;
   box-shadow: 0 4px 20px rgba(0,0,0,.4);
   animation: toast-in .18s ease;
+  max-width: 480px;
+  text-align: center;
 }
 .toast-error { border-color: var(--red);    color: var(--red); }
 .toast-warn  { border-color: var(--orange); color: var(--orange); }
